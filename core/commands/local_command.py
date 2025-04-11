@@ -25,7 +25,7 @@ class LocalCommand(AbstractCommand):
             debug_logger.error(f"Unexpected error executing command: {str(e)}")
             return str(e)
 
-    def upload_file(self, local_path: str, remote_path: str) -> bool:
+    def upload(self, local_path: str, remote_path: str) -> bool:
         """For local execution, this just copies files"""
         import shutil
         try:

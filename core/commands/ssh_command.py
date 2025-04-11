@@ -15,32 +15,75 @@ class SSHCommand(AbstractCommand):
         self.prompt = b'$'  # Default prompt
         self.connect()
 
-    def _wait_for_prompt(self, timeout=5):
-        """Wait until we see the shell prompt"""
-        start_time = time.time()
+    def _wait_for_prompt(self, timeout=300):
+        """Universal prompt waiting that works for all shells and long commands"""
         output = b''
+        active = False  # Track if we're seeing active command output
+        last_data_time = time.time()
         
-        while time.time() - start_time < timeout:
+        while True:
             try:
+                # Check overall timeout
+                if time.time() - last_data_time > timeout:
+                    debug_logger.warning(f"Timeout after {timeout}s of inactivity")
+                    break
+                
+                # Receive data with short timeout
                 data = self.shell.recv(timeout=0.5)
                 if not data:
+                    if active:  # Only log if we had output before
+                        debug_logger.debug("No data received, waiting...")
                     continue
                 
+                # Check if last command output was a 
+                    
                 output += data
-                if self.prompt in output:
-                    # Return everything before the prompt
-                    return output.split(self.prompt)[0].decode('utf-8').strip()
+                last_data_time = time.time()
+                active = True
+                
+                # Check for common shell prompts (universal detection)
+                prompt_patterns = [
+                    rb'\$ $',          # bash/zsh
+                    rb'# $',            # root shell
+                    rb'>>> ',           # Python
+                    rb'In \[\d+\]: ',   # IPython
+                    rb'\? $'            # csh/tcsh
+                ]
+                
+                
+                # Check if we have a complete command output
+                if any(re.search(pattern, output) for pattern in prompt_patterns):
+                    # Extract everything before the prompt
+                    for pattern in prompt_patterns:
+                        if re.search(pattern, output):
+                            parts = re.split(pattern, output)
+                            if len(parts) > 1:
+                                return parts[0].decode('utf-8', errors='ignore').strip()
+                    
+                    # Fallback if split failed
+                    return output.decode('utf-8', errors='ignore').strip()
+                
+                # Check for password prompts
+                password_patterns = [
+                    b'[Pp]assword:', 
+                    b'[Pp]assphrase:',
+                    b'Enter [Pp]assword'
+                ]
+                
+                if any(re.search(pattern, output) for pattern in password_patterns):
+                    # If we detect a password prompt, send the password
+                    debug_logger.debug("Detected password prompt")
+                    return 'password prompt'
                     
             except EOFError:
-                debug_logger.error("Shell connection closed unexpectedly")
-                self.connect()  # Reconnect
-                return ""
+                debug_logger.error("Shell connection terminated")
+                self.connect()
+                return output.decode('utf-8', errors='ignore').strip()
             except Exception as e:
-                debug_logger.error(f"Error receiving data: {str(e)}")
+                debug_logger.error(f"Receive error: {str(e)}")
                 continue
-                
-        debug_logger.warning(f"Prompt not found in output: {output}")
-        return output.decode('utf-8').strip()
+        
+        return output.decode('utf-8', errors='ignore').strip()
 
     def connect(self):
         try:
@@ -86,11 +129,6 @@ class SSHCommand(AbstractCommand):
             
             # Get output
             output = self._wait_for_prompt()
-            
-            # Handle sudo password prompts
-            if "password for " + self.username in output:
-                self.shell.sendline(self.password.encode())
-                output += "\n" + self._wait_for_prompt()
                 
             output = clean_output(output)
             debug_logger.debug(f"Command output: {output[:200]}...")  # Log first 200 chars
@@ -100,15 +138,13 @@ class SSHCommand(AbstractCommand):
             debug_logger.error(f"Command execution failed: {str(e)}")
             self.connect()  # Attempt to reconnect
             raise
-
-    def upload_file(self, local_path: str, remote_path: str) -> bool:
+    
+    def upload(self, local_path: str, remote_path: str) -> bool:
         try:
-            with open(local_path, 'rb') as f:
-                data = f.read()
-            self.conn.upload_data(data, remote_path)
+            self.conn.upload(local_path, remote_path)
             return True
         except Exception as e:
-            debug_logger.error(f"File upload failed: {str(e)}")
+            debug_logger.error(f"Upload failed: {str(e)}")
             return False
 
     def download_file(self, remote_path: str, local_path: str) -> bool:

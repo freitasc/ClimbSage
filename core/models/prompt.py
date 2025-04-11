@@ -9,20 +9,50 @@ class PrivEscPrompt:
         self.facts = []
         self.hints = []
         self.avoids = []
-    
-    def add_command_history(self, command: str):
-        if command not in self.command_history:
-            self.command_history.append(command)
+        self.last_output = ""
+        self.last_command = ""
     
     def add_system_info(self, info: str):
         if info not in self.system_info:
             self.system_info.append(info)
+
+    def add_command_history(self, command: str):
+        if command not in self.command_history:
+            self.command_history.append(command)
+    
+    def add_hint(self, hint: str):
+        if hint not in self.hints:
+            self.hints.append(hint)
+    
+    def add_fact(self, fact: str):
+        if fact not in self.facts:
+            self.facts.append(fact)
+    
+    def add_avoid(self, avoid: str):
+        if avoid not in self.avoids:
+            self.avoids.append(avoid)
+    
+    def clear(self):
+        self.system_info.clear()
+        self.command_history.clear()
+        self.facts.clear()
+        self.hints.clear()
+        self.avoids.clear()
     
     def generate_prompt(self) -> str:
         prompt = [
             f"You are user '{self.username}' (password: '{self.password}') on {self.system}.",
             f"Goal: Become '{self.target_user}' through privilege escalation.",
+            f"Provide ONLY the next command or input, no explanations.",
+            f"If you have a password, use it to escalate privileges.",
+            f"Use the following information to assist in your task:"
         ]
+        
+        if self.last_command:
+            prompt.append(f"\n### Last Command: {self.last_command}")
+            
+        if self.last_output:
+            prompt.append(f"\n### Last Output: {self.last_output}")
         
         if self.system_info:
             prompt.append("\n### System Information:")
@@ -47,5 +77,4 @@ class PrivEscPrompt:
             prompt.append("\n### Avoid:")
             prompt.extend(f"- {avoid}" for avoid in self.avoids)
         
-        prompt.append("\nProvide ONLY the next command to execute, no explanations.")
         return "\n".join(prompt)

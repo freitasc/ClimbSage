@@ -6,7 +6,7 @@ class AbstractCommand(ABC):
         pass
     
     @abstractmethod
-    def upload_file(self, local_path: str, remote_path: str) -> bool:
+    def upload(self, local_path: str, remote_path: str) -> bool:
         pass
     
     @abstractmethod
