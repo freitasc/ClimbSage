@@ -4,36 +4,36 @@ class PrivEscPrompt:
         self.password = password
         self.system = system
         self.target_user = target_user
-        self.history = []
+        self.system_info = []
+        self.command_history = []
         self.facts = []
         self.hints = []
         self.avoids = []
-        self.tools_data = {}
     
-    def add_tool_data(self, tool_name: str, data: str):
-        self.tools_data[tool_name] = data
+    def add_command_history(self, command: str):
+        if command not in self.command_history:
+            self.command_history.append(command)
     
-    def add_history(self, command: str, output: str = ""):
-        if not any(entry["command"] == command for entry in self.history):
-            self.history.append({"command": command, "output": output})
+    def add_system_info(self, info: str):
+        if info not in self.system_info:
+            self.system_info.append(info)
     
     def generate_prompt(self) -> str:
         prompt = [
             f"You are user '{self.username}' (password: '{self.password}') on {self.system}.",
             f"Goal: Become '{self.target_user}' through privilege escalation.",
-            "\n### System Information:"
         ]
         
-        if self.tools_data:
-            for tool, data in self.tools_data.items():
-                prompt.append(f"\n{tool} output:\n{data}")
+        if self.system_info:
+            prompt.append("\n### System Information:")
+            for info in self.system_info:
+                prompt.append(f"- {info}")
         
-        if self.history:
+        if self.command_history:
             prompt.append("\n### Command History:")
-            for entry in self.history:
-                prompt.append(f"$ {entry['command']}")
-                if entry['output']:
-                    prompt.append(entry['output'])
+            for command in self.command_history:
+                prompt.append(f"$ {command}")
+
         
         if self.facts:
             prompt.append("\n### Known Facts:")

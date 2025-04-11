@@ -2,17 +2,25 @@ import re
 
 class RootDetector:
     @staticmethod
-    def got_root(hostname: str, output: str) -> bool:
-        patterns = [
-            re.compile("^# $"),
-            re.compile("^bash-[0-9]+.[0-9]# $"),
-            re.compile(f"root@{hostname}:.*#\s"),
-            re.compile("uid=0\(root\)"),
-            re.compile("^root$")
+    def got_root(hostname: str, system_info: list) -> bool:
+        """
+        Detect if root access has been achieved based on system information.
+        """
+        # Check for common root indicators in system info
+        root_indicators = [
+            r"root",
+            r"uid=0",
+            r"sudo",
+            r"su",
+            r"superuser",
+            r"administrator",
+            r"system",
+            r"admin"
         ]
         
-        if any(pattern.search(output) for pattern in patterns):
-            return True
-        if f"root@{hostname}:" in output:
-            return True
+        for info in system_info:
+            for indicator in root_indicators:
+                if re.search(indicator, info, re.IGNORECASE):
+                    return True
+        
         return False

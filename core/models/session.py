@@ -39,9 +39,10 @@ class Session:
                 output = self.command_executor.execute(command)
                 print(f"[OUTPUT]\n{output}")
                 
-                self.prompt.add_history(command, output)
+                self.prompt.add_system_info(output)
+                self.prompt.add_command_history(command)
                 
-                if RootDetector.got_root(self.hostname, output):
+                if RootDetector.got_root(self.hostname, self.prompt.system_info):
                     print("\n[SUCCESS] Root access achieved!")
                     summary = self._generate_summary()
                     print(f"\n[SUMMARY]\n{summary}")
@@ -56,10 +57,22 @@ class Session:
             self.running = False
     
     def _generate_summary(self) -> str:
+        summary = "\n[START OF SUMMARY]\n"
         summary = "Privilege Escalation Summary:\n\n"
         summary += "Commands executed:\n"
-        for entry in self.prompt.history:
-            summary += f"$ {entry['command']}\n"
-            if entry['output']:
-                summary += f"{entry['output']}\n\n"
+        for command in self.prompt.command_history:
+            summary += f"- {command}\n"
+        summary += "\nSystem information:\n"
+        for info in self.prompt.system_info:
+            summary += f"- {info}\n"
+        summary += "\nKnown facts:\n"
+        for fact in self.prompt.facts:
+            summary += f"- {fact}\n"
+        summary += "\nHints:\n"
+        for hint in self.prompt.hints:
+            summary += f"- {hint}\n"
+        summary += "\nAvoid:\n"
+        for avoid in self.prompt.avoids:
+            summary += f"- {avoid}\n"
+        summary += "\n\n[END OF SUMMARY]"
         return summary
