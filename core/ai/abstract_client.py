@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-class AIProvider(ABC):
+class AbstractClient(ABC):
     @abstractmethod
     def get_response(self, system_prompt: str, user_prompt: str) -> str:
         pass

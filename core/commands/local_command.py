@@ -1,8 +1,8 @@
 import subprocess
-from .base_command import BaseCommand
+from .abstract_command import AbstractCommand
 from core.utils.logger import debug_logger
 
-class LocalCommand(BaseCommand):
+class LocalCommand(AbstractCommand):
     def __init__(self):
         debug_logger.debug("Local command executor initialized")
 

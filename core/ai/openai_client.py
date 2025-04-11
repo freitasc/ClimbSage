@@ -1,9 +1,9 @@
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
-from .ai_provider import AIProvider
+from .abstract_client import AbstractClient
 
-class OpenAIClient(AIProvider):
+class OpenAIClient(AbstractClient):
     def __init__(self):
         load_dotenv()
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))

@@ -1,10 +1,10 @@
 from pwn import *
-from .base_command import BaseCommand
+from .abstract_command import AbstractCommand
 from core.utils.logger import debug_logger
 import time
 from core.utils.cleaner import clean_output
 
-class SSHCommand(BaseCommand):
+class SSHCommand(AbstractCommand):
     def __init__(self, host: str, port: int, username: str, password: str):
         self.host = host
         self.port = port

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-class BaseCommand(ABC):
+class AbstractCommand(ABC):
     @abstractmethod
     def execute(self, command: str) -> str:
         pass

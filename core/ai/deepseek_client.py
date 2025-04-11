@@ -1,10 +1,10 @@
-from .ai_provider import AIProvider
+from .abstract_client import AbstractClient
 import requests
 import os
 from dotenv import load_dotenv
 from typing import Optional
 
-class DeepSeekClient(AIProvider):
+class DeepSeekClient(AbstractClient):
     def __init__(self):
         load_dotenv()
         self.api_key = os.getenv("DEEPSEEK_API_KEY")
