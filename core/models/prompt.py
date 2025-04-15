@@ -1,9 +1,9 @@
 class PrivEscPrompt:
-    def __init__(self, username: str, password: str, system: str, target_user: str):
+    def __init__(self, username: str, password: str, system: str, target: str):
         self.username = username
         self.password = password
         self.system = system
-        self.target_user = target_user
+        self.target = target
         self.system_info = []
         self.command_history = []
         self.facts = []
@@ -42,9 +42,14 @@ class PrivEscPrompt:
     def generate_prompt(self) -> str:
         prompt = [
             f"You are user '{self.username}' (password: '{self.password}') on {self.system}.",
-            f"Goal: Become '{self.target_user}' through privilege escalation.",
-            f"Provide ONLY the next command or input, no explanations.",
-            f"If you have a password, use it to escalate privileges.",
+            f"Goal: Become '{self.target}' through privilege escalation.",
+            f"Provide ONLY the next command or input, NO EXPLANATIONS.",
+            f"If you find the password of the target, use it to escalate privileges.",
+            f"You may use different methods to escalate privileges, including but not limited to:",
+            f"- Kernel exploits, SUID/SGID binaries, cron jobs, misconfigurations, etc.",
+            f"- Su, SSH connections, or any other credential based methods.",
+            f"- Any other methods you deem appropriate.",
+            f"If you get and ONLY if you get a 'PASSWORD PROMPT!' input, you may use the password you deem appropriate.",
             f"Use the following information to assist in your task:"
         ]
         
@@ -63,18 +68,17 @@ class PrivEscPrompt:
             prompt.append("\n### Command History:")
             for command in self.command_history:
                 prompt.append(f"$ {command}")
-
         
         if self.facts:
             prompt.append("\n### Known Facts:")
             prompt.extend(f"- {fact}" for fact in self.facts)
         
-        if self.hints:
-            prompt.append("\n### Hints:")
-            prompt.extend(f"- {hint}" for hint in self.hints)
-        
         if self.avoids:
             prompt.append("\n### Avoid:")
             prompt.extend(f"- {avoid}" for avoid in self.avoids)
+        
+        if self.hints:
+            prompt.append("\n### Hints:")
+            prompt.extend(f"- {hint}" for hint in self.hints)
         
         return "\n".join(prompt)

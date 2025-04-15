@@ -2,6 +2,7 @@
 import argparse
 from core.models.session import Session
 from core.commands.ssh_command import SSHCommand
+from core.commands.local_command import LocalCommand
 from core.ai import get_ai_provider
 
 def main():
@@ -13,43 +14,59 @@ def main():
     parser.add_argument('--provider', default='openai', choices=['openai', 'deepseek'], help='AI provider')
     parser.add_argument('--max-requests', type=int, default=10, help='Max AI requests')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
-    parser.add_argument('--scan', choices=['beroot', 'linpeas', 'all'],
+    parser.add_argument('--scan', choices=['beroot', 'peas', 'all', 'none'],
                        default='all',
                        help='Run security scanners')
     parser.add_argument('--auto', action='store_true', 
                        help='Run full automated escalation')
+    parser.add_argument('--local', action='store_true',
+                       help='Run in local mode (no SSH)')
+    parser.add_argument('--target', default='root',
+                       help='Target user for escalation')
+    parser.add_argument('--system', choices=['linux', 'windows'],
+                          default='linux', help='Target system type')
     
     args = parser.parse_args()
     
     # Initialize components
     ai_provider = get_ai_provider(args.provider)
-    command_executor = SSHCommand(
-        host=args.host,
-        port=args.port,
-        username=args.username,
-        password=args.password
-    )
+    # Validate arguments
+    if not args.local and not args.host:
+        parser.error("--host is required when using SSH mode")
+    if args.local and (args.host or args.port != 22 or args.username or args.password):
+        print("Warning: SSH arguments ignored in local mode")
+
+    # Initialize command executor
+    if args.local:
+        command_executor = LocalCommand()
+        print("[!] Running in local mode")
+    else:
+        command_executor = SSHCommand(
+            host=args.host,
+            port=args.port,
+            username=args.username,
+            password=args.password
+        )
     
     session = Session(
         username=args.username,
         password=args.password,
-        system="Linux",
-        target_user="bandit7",
+        system=args.system,
+        target=args.target,
         ai_provider=ai_provider,
         command_executor=command_executor,
-        max_requests=args.max_requests
+        max_requests=args.max_requests,
     )
     
     if args.scan:
         if args.scan == 'all':
-            print(session.run_scan('beroot'))
-            print(session.run_scan('linpeas'))
+            session.auto_escalate()
+        elif args.scan == 'none':
+            print("[!] No scanners will be run.")
         else:
-            print(session.run_scan(args.scan))
-    elif args.auto:
-        session.auto_escalate()
+            session.run_scan(args.scan)
     else:
-        session.run()
+        session.auto_escalate()
     
     session.run()
 

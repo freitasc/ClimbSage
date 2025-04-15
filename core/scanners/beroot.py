@@ -7,16 +7,16 @@ from typing import Dict, Any
 
 class BeRootScanner(AbstractScanner):
     def __init__(self):
-        self.local_path = 'external_tools/BeRoot-master/Linux'
-        self.remote_path = '/tmp/'
+        self.local_path = 'external_tools/Linux/BeRoot'
+        self.remote_path = '/tmp'
         
     def run(self, command_executor: AbstractCommand) -> Dict[str, Any]:
         try:
             # Upload BeRoot
-            command_executor.upload(self.local_path, self.remote_path)
+            command_executor.upload(f"{self.local_path}", self.remote_path)
             
             # Run BeRoot
-            command = f"python3 {self.remote_path}Linux/beroot.py --password '{command_executor.password}' 2>/dev/null"
+            command = f"python3 {self.remote_path}/BeRoot/beroot.py 2>/dev/null"
             output = command_executor.execute(command)
             
             return {

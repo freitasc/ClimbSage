@@ -2,7 +2,7 @@ import re
 
 class RootDetector:
     @staticmethod
-    def got_root(hostname: str, system_info: list) -> bool:
+    def got_root(hostname: str, system_info: list, target: str) -> bool:
         """
         Detect if root access has been achieved based on system information.
         """
@@ -15,7 +15,8 @@ class RootDetector:
             r"superuser",
             r"administrator",
             r"system",
-            r"admin"
+            r"admin",
+            target,
         ]
         
         for info in system_info:

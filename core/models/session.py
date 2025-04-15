@@ -5,44 +5,51 @@ from core.utils.timer import GlobalTimer
 from core.models.prompt import PrivEscPrompt
 from core.scanners.beroot import BeRootScanner
 from core.scanners.linpeas import LinPEASScanner
+from core.scanners.winpeas import WinPEASScanner
 from core.utils.logger import debug_logger
 import re
 
 class Session:
-    def __init__(self, username: str, password: str, system: str, target_user: str, 
+    def __init__(self, username: str, password: str, system: str, target: str, 
                  ai_provider, command_executor, max_requests: int = 10000):
-        self.prompt = PrivEscPrompt(username, password, system, target_user)
+        self.prompt = PrivEscPrompt(username, password, system, target)
         self.ai_provider = ai_provider
         self.command_executor = command_executor
         self.max_requests = max_requests
         self.hostname = "target"
         self.running = False
+        self.target = target
+        self.system = system.lower()
         self.scanners = {
-            'beroot': BeRootScanner(),
-            'linpeas': LinPEASScanner()
+            'linux': {
+                'beroot': BeRootScanner(),
+                'linpeas': LinPEASScanner()
+            },
+            'windows': {
+                'winpeas': WinPEASScanner(),
+                # 'beroot': BeRootScanner()  # Uncomment if Windows BeRoot is available
+            }
         }
     
     def run_scan(self, scan_name: str) -> str:
-        if scan_name not in self.scanners:
-            return f"Unknown scanner: {scan_name}"
+        # Get the appropriate scanner dictionary based on system
+        system_scanners = self.scanners.get(self.system, {})
         
-        scanner = self.scanners[scan_name]
+        if scan_name not in system_scanners:
+            available = ", ".join(system_scanners.keys())
+            return f"Unknown scanner for {self.system}: {scan_name}. Available scanners: {available}"
+        
+        scanner = system_scanners[scan_name]
         results = scanner.run(self.command_executor)
         self.prompt.add_hint(f"{scan_name.upper()} SCAN RESULTS\n\n{results['raw_output']}")
-        return scanner.analyze(results)
 
     def auto_escalate(self):
-        """Automated privilege escalation workflow"""
-        # Run all scanners
-        for name, scanner in self.scanners.items():
-            scan_results = scanner.run(self.command_executor)
-
-            # Add findings to hints
-            analysis = scanner.analyze(scan_results)
-            self.prompt.add_hint(f"{name.upper()} SCAN ANALYSIS\n\n{analysis}")
+        # Get the appropriate scanners for the current system
+        system_scanners = self.scanners.get(self.system, {})
         
-        # Continue with AI-powered escalation
-        self.run()
+        for name, scanner in system_scanners.items():
+            results = scanner.run(self.command_executor)
+            self.prompt.add_hint(f"\n{name.upper()} SCAN RESULTS\n\n{results['raw_output']}")
     
     def run(self):
         self.running = True
@@ -55,7 +62,9 @@ class Session:
                 
                 print(f"\n[AI Request #{i+1}]")
                 prompt = self.prompt.generate_prompt()
-                print(f"[PROMPT]\n{prompt}\n")
+                
+                # print the first 50 lines of the prompt for debugging
+                print(f"[PROMPT]\n{prompt[:5000]}")
                 
                 response = self.ai_provider.get_response(
                     "You are an experienced pentester.",
@@ -78,8 +87,8 @@ class Session:
                         f"Command '{command}' returned empty output. "
                         f"Actual output was: {repr(output)}"
                     )
-                    self.prompt.add_system_info(hint_msg)
-                elif output == "password prompt":
+                    self.prompt.add_avoid(hint_msg)
+                elif output == "PASSWORD PROMPT!":
                     self.prompt.add_system_info(
                         f"Command '{command}' requires a password. Please provide the password."
                     )
@@ -93,7 +102,7 @@ class Session:
                 self.prompt.last_command = command
                 self.prompt.last_output = cleaned_output
                 
-                if RootDetector.got_root(self.hostname, cleaned_output):
+                if RootDetector.got_root(self.hostname, cleaned_output, self.target):
                     print("\n[SUCCESS] Root access achieved!")
                     summary = self._generate_summary()
                     print(f"\n[SUMMARY]\n{summary}")

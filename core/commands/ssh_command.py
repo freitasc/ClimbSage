@@ -73,7 +73,7 @@ class SSHCommand(AbstractCommand):
                 if any(re.search(pattern, output) for pattern in password_patterns):
                     # If we detect a password prompt, send the password
                     debug_logger.debug("Detected password prompt")
-                    return 'password prompt'
+                    return 'PASSWORD PROMPT!'
                     
             except EOFError:
                 debug_logger.error("Shell connection terminated")

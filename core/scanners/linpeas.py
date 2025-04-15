@@ -7,7 +7,7 @@ from typing import Dict, Any
 
 class LinPEASScanner(AbstractScanner):
     def __init__(self):
-        self.local_path = "external_tools/linpeas"
+        self.local_path = "external_tools/Linux/linpeas"
         self.remote_path = "/tmp"
         
     def run(self, command_executor: AbstractCommand) -> Dict[str, Any]:
@@ -19,8 +19,8 @@ class LinPEASScanner(AbstractScanner):
             )
             
             # Make executable and run
-            command_executor.execute(f"chmod +x {self.remote_path}")
-            output = command_executor.execute(f"{self.remote_path} -a")
+            command_executor.execute(f"chmod +x {self.remote_path}/linpeas.sh")
+            output = command_executor.execute(f"{self.remote_path}/linpeas.sh -a")
             
             return {
                 'raw_output': output,
